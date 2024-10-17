@@ -68,7 +68,7 @@ const deleteAusgabe = async (id: string) => {
   })
 }
 
-export default function ErweiterterPersönlicherFinanztracker() {
+export default function PersönlicherFinanztracker() {
   const [ausgaben, setAusgaben] = useState<Ausgabe[]>([])
   const [beschreibung, setBeschreibung] = useState('')
   const [betrag, setBetrag] = useState('')
