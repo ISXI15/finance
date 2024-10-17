@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts'
-import { Plus, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,11 +22,54 @@ type Ausgabe = {
 const FARBEN = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 
-// Simples Speicherarray als Ersatz für IndexedDB
-const initialAusgaben: Ausgabe[] = []
+// IndexedDB Funktionen (unverändert)
+const initDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('FinanzTrackerDB', 1)
+    request.onerror = () => reject('IndexedDB konnte nicht geöffnet werden')
+    request.onsuccess = () => resolve(request.result)
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result
+      db.createObjectStore('ausgaben', { keyPath: 'id' })
+    }
+  })
+}
+
+const addAusgabe = async (ausgabe: Ausgabe) => {
+  const db = await initDB() as IDBDatabase
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['ausgaben'], 'readwrite')
+    const store = transaction.objectStore('ausgaben')
+    const request = store.add(ausgabe)
+    request.onerror = () => reject('Fehler beim Hinzufügen der Ausgabe')
+    request.onsuccess = () => resolve(request.result)
+  })
+}
+
+const getAllAusgaben = async () => {
+  const db = await initDB() as IDBDatabase
+  return new Promise<Ausgabe[]>((resolve, reject) => {
+    const transaction = db.transaction(['ausgaben'], 'readonly')
+    const store = transaction.objectStore('ausgaben')
+    const request = store.getAll()
+    request.onerror = () => reject('Fehler beim Abrufen der Ausgaben')
+    request.onsuccess = () => resolve(request.result)
+  })
+}
+
+const deleteAusgabe = async (id: string) => {
+  const db = await initDB() as IDBDatabase
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['ausgaben'], 'readwrite')
+    const store = transaction.objectStore('ausgaben')
+    const request = store.delete(id)
+    request.onerror = () => reject('Fehler beim Löschen der Ausgabe')
+    request.onsuccess = () => resolve(request.result)
+  })
+}
 
 export default function ErweiterterPersönlicherFinanztracker() {
-  const [ausgaben, setAusgaben] = useState<Ausgabe[]>(initialAusgaben)
+  const [ausgaben, setAusgaben] = useState<Ausgabe[]>([])
   const [beschreibung, setBeschreibung] = useState('')
   const [betrag, setBetrag] = useState('')
   const [kategorie, setKategorie] = useState('')
@@ -36,11 +79,18 @@ export default function ErweiterterPersönlicherFinanztracker() {
   const router = useRouter()
 
   useEffect(() => {
-    // Daten könnten hier z. B. von einem Backend abgerufen werden
-    setAusgaben(initialAusgaben)
+    const loadAusgaben = async () => {
+      try {
+        const loadedAusgaben = await getAllAusgaben()
+        setAusgaben(loadedAusgaben)
+      } catch (error) {
+        console.error('Fehler beim Laden der Ausgaben:', error)
+      }
+    }
+    loadAusgaben()
   }, [])
 
-  const ausgabeHinzufügen = (e: React.FormEvent) => {
+  const ausgabeHinzufügen = async (e: React.FormEvent) => {
     e.preventDefault()
     if (beschreibung && betrag && kategorie && datum) {
       const neueAusgabe: Ausgabe = {
@@ -50,16 +100,26 @@ export default function ErweiterterPersönlicherFinanztracker() {
         kategorie,
         datum
       }
-      setAusgaben([...ausgaben, neueAusgabe])
-      setBeschreibung('')
-      setBetrag('')
-      setKategorie('')
-      setDatum('')
+      try {
+        await addAusgabe(neueAusgabe)
+        setAusgaben([...ausgaben, neueAusgabe])
+        setBeschreibung('')
+        setBetrag('')
+        setKategorie('')
+        setDatum('')
+      } catch (error) {
+        console.error('Fehler beim Hinzufügen der Ausgabe:', error)
+      }
     }
   }
 
-  const ausgabeEntfernen = (id: string) => {
-    setAusgaben(ausgaben.filter(ausgabe => ausgabe.id !== id))
+  const ausgabeEntfernen = async (id: string) => {
+    try {
+      await deleteAusgabe(id)
+      setAusgaben(ausgaben.filter(ausgabe => ausgabe.id !== id))
+    } catch (error) {
+      console.error('Fehler beim Entfernen der Ausgabe:', error)
+    }
   }
 
   const gesamtausgaben = ausgaben.reduce((summe, ausgabe) => summe + ausgabe.betrag, 0)
@@ -96,6 +156,7 @@ export default function ErweiterterPersönlicherFinanztracker() {
   }))
 
   const handleLogout = () => {
+    // Here you would typically handle logout logic
     router.push('/login')
   }
 
@@ -167,88 +228,154 @@ export default function ErweiterterPersönlicherFinanztracker() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="übersicht">
+      <Tabs defaultValue="übersicht" className="space-y-4">
         <TabsList>
           <TabsTrigger value="übersicht">Übersicht</TabsTrigger>
-          <TabsTrigger value="statistiken">Statistiken</TabsTrigger>
+          <TabsTrigger value="monatlich">Monatliche Analyse</TabsTrigger>
+          <TabsTrigger value="jährlich">Jährliche Analyse</TabsTrigger>
         </TabsList>
 
         <TabsContent value="übersicht">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Gesamtausgaben</CardTitle>
+                <CardTitle>Letzte Ausgaben</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{gesamtausgaben.toFixed(2)} €</p>
+                <ul className="space-y-2">
+                  {ausgaben.slice().reverse().map((ausgabe) => (
+                    <li key={ausgabe.id} className="flex justify-between items-center bg-gray-100 p-2 rounded">
+                      <span>{ausgabe.beschreibung} - {ausgabe.betrag.toFixed(2)} € ({ausgabe.kategorie}) - {new Date(ausgabe.datum).toLocaleDateString('de-DE')}</span>
+                      <Button variant="ghost" size="icon" onClick={() => ausgabeEntfernen(ausgabe.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Monatliche Ausgaben</CardTitle>
+                <CardTitle>Ausgabenübersicht</CardTitle>
               </CardHeader>
               <CardContent>
-              <div className="flex items-center justify-between">
-              <button onClick={() => setSelectedYear(selectedYear - 1)}>
-                <ChevronLeft />
-               </button>
-              <span>{selectedYear}</span>
-              <button onClick={() => setSelectedYear(selectedYear + 1)}>
-                 <ChevronRight />
-                </button>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={tortendiagrammDaten}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {tortendiagrammDaten.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={FARBEN[index % FARBEN.length]} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-                <div className="flex items-center justify-between">
-                  <button onClick={() => setSelectedMonth((selectedMonth - 1 + 12) % 12)}>
-                    <ChevronLeft />
-                  </button>
-                  <span>{MONATE[selectedMonth]} {selectedYear}</span>
-                  <button onClick={() => setSelectedMonth((selectedMonth + 1) % 12)}>
-                    <ChevronRight />
-                  </button>
-                </div>
-                <p className="text-2xl font-bold mt-4">{monatlicheAusgaben.toFixed(2)} €</p>
+                <p className="text-center mt-4">Gesamtausgaben: {gesamtausgaben.toFixed(2)} €</p>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="statistiken">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ausgaben nach Kategorien</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={tortendiagrammDaten} dataKey="value" nameKey="name">
-                      {tortendiagrammDaten.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={FARBEN[index % FARBEN.length]} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+        <TabsContent value="monatlich">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev - 1 + 12) % 12)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                Monatliche Analyse: {MONATE[selectedMonth]} {selectedYear}
+                <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev + 1) % 12)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Ausgaben nach Kategorie</h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={monatlichesDiagrammDaten}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {monatlichesDiagrammDaten.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={FARBEN[index % FARBEN.length]} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
+                  <p>Gesamtausgaben diesen Monat: {monatlicheAusgaben.toFixed(2)} €</p>
+                  <ul className="mt-4 space-y-2">
+                    {Object.entries(monatlicheAusgabenNachKategorie).map(([kategorie, betrag]) => (
+                      <li key={kategorie} className="flex justify-between">
+                        <span>{kategorie}:</span>
+                        <span>{betrag.toFixed(2)} €</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Jährliche Ausgaben</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={jährlicheAusgabenNachMonat}>
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="betrag" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="jährlich">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <Button variant="outline" size="icon" onClick={() => setSelectedYear(prev => prev - 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                Jährliche Analyse: {selectedYear}
+                <Button variant="outline" size="icon" onClick={() => setSelectedYear(prev => prev + 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Jährliche Ausgabenübersicht</h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={jährlicheAusgabenNachMonat}>
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="betrag" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Jährliche Zusammenfassung</h3>
+                  <p>Gesamtausgaben dieses Jahr: {jährlicheAusgaben.toFixed(2)} €</p>
+                  <p>Durchschnittliche monatliche Ausgaben: {(jährlicheAusgaben / 12).toFixed(2)} €</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
