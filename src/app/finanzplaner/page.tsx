@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts'
-import { Plus, Trash2, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -189,6 +189,15 @@ export default function ErweiterterPersönlicherFinanztracker() {
                 <CardTitle>Monatliche Ausgaben</CardTitle>
               </CardHeader>
               <CardContent>
+              <div className="flex items-center justify-between">
+              <button onClick={() => setSelectedYear(selectedYear - 1)}>
+                <ChevronLeft />
+               </button>
+              <span>{selectedYear}</span>
+              <button onClick={() => setSelectedYear(selectedYear + 1)}>
+                 <ChevronRight />
+                </button>
+                </div>
                 <div className="flex items-center justify-between">
                   <button onClick={() => setSelectedMonth((selectedMonth - 1 + 12) % 12)}>
                     <ChevronLeft />
