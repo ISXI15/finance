@@ -41,9 +41,8 @@ export async function loginUser(email: string, password: string) {
   }
 }
 
-interface CustomJwtPayload extends JwtPayload {
-  id: number;
-}
+// Verwende einen Typ statt eines Interfaces
+type CustomJwtPayload = JwtPayload & { id: number };
 
 export function verifyToken(token: string): CustomJwtPayload {
   try {
