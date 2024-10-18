@@ -1,28 +1,21 @@
 ﻿import { NextResponse } from 'next/server';
-import { loginUser } from '@/lib/auth';
+import { hash } from 'bcryptjs';
+import db from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
-    const { user, token } = await loginUser(email, password);
-    const response = NextResponse.json({ user, token });
+    const { username, email, password } = await req.json();
+    const hashedPassword = await hash(password, 10);
 
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 3600 // 1 hour
-    });
-
-    return response;
-  } catch (error) {
-    // Um sicherzustellen, dass die Variable error korrekt genutzt wird:
-    console.error('Login failed:', (error as Error)?.message || 'Unknown error');
-
-    // Sende eine Fehlerantwort zurück
-    return NextResponse.json(
-      { error: 'Login failed. Please check your credentials and try again.' },
-      { status: 401 }
+    const result = await db.query(
+      'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email',
+      [username, email, hashedPassword]
     );
+
+    const user = result.rows[0];
+    return NextResponse.json({ user }, { status: 201 });
+  } catch (error) {
+    console.error('Registration error:', error);
+    return NextResponse.json({ error: 'Registration failed' }, { status: 400 });
   }
 }

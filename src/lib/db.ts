@@ -1,7 +1,9 @@
-﻿import { createPool } from '@vercel/postgres';
+﻿import { Pool } from 'pg';
 
-const pool = createPool({
-  connectionString: process.env.DATABASE_URL
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
 });
 
-export default pool;
+export default {
+  query: (text: string, params?: any[]) => pool.query(text, params),
+};
