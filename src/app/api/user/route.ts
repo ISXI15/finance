@@ -1,25 +1,30 @@
 ﻿import { NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
-import pool from '@/lib/db';
+import { loginUser } from '@/lib/auth';
 
-export async function GET(req: Request) {
-  const token = req.headers.get('Cookie')?.split(';').find(c => c.trim().startsWith('token='))?.split('=')[1];
-
-  if (!token) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
+export async function POST(req: Request) {
   try {
-    const decoded = verifyToken(token);
-    const result = await pool.query('SELECT id, username, email FROM users WHERE id = $1', [decoded.id]);
-    const user = result.rows[0];
+    const { email, password } = await req.json();
+    const { user, token } = await loginUser(email, password);
+    const response = NextResponse.json({ user, token });
 
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 3600 // 1 hour
+    });
+
+    return response;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Login failed:', error.message);
+    } else {
+      console.error('Login failed: Unknown error');
     }
 
-    return NextResponse.json(user);
-  } catch (error) {
-    return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Login failed. Please check your credentials and try again.' },
+      { status: 401 }
+    );
   }
 }

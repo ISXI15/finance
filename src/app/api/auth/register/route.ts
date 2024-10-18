@@ -1,12 +1,28 @@
 ﻿import { NextResponse } from 'next/server';
-import { registerUser } from '@/lib/auth';
+import { loginUser } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
-    const { username, email, password } = await req.json();
-    const user = await registerUser(username, email, password);
-    return NextResponse.json({ user }, { status: 201 });
+    const { email, password } = await req.json();
+    const { user, token } = await loginUser(email, password);
+    const response = NextResponse.json({ user, token });
+
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 3600 // 1 hour
+    });
+
+    return response;
   } catch (error) {
-    return NextResponse.json({ error: 'Registration failed' }, { status: 400 });
+    // Um sicherzustellen, dass die Variable error korrekt genutzt wird:
+    console.error('Login failed:', (error as Error)?.message || 'Unknown error');
+
+    // Sende eine Fehlerantwort zurück
+    return NextResponse.json(
+      { error: 'Login failed. Please check your credentials and try again.' },
+      { status: 401 }
+    );
   }
 }
