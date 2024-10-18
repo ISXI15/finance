@@ -2,8 +2,13 @@
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-export default {
-  query: (text: string, params?: any[]) => pool.query(text, params),
+// Definiere die query-Funktion
+const db = {
+  query: (text: string, params?: unknown[]) => pool.query(text, params),
 };
+
+// Exportiere das db-Objekt als Standard-Export
+export default db;

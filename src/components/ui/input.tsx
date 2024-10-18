@@ -1,10 +1,10 @@
-﻿/* eslint-disable @typescript-eslint/no-empty-interface */
-
-import * as React from "react";
+﻿import * as React from "react";
 import { cn } from "../../lib/utils";
 
-// Leere Schnittstelle kann beibehalten werden, ohne dass ESLint eine Warnung ausgibt
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+// InputProps direkt von React.InputHTMLAttributes<HTMLInputElement> ableiten
+type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  className?: string; // Optional, wenn du zusätzliche Props hinzufügen möchtest
+};
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = "text", ...props }, ref) => {
