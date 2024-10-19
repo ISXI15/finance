@@ -16,37 +16,40 @@ export default function LoginForm() {
       body: JSON.stringify({ email, password }),
     });
     if (response.ok) {
-      router.push('/dashboard');
+      router.push('/finanzplaner');
     } else {
       alert('Login failed');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="email" className="block">Email</label>
-        <input
-          type="email"
-          id="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full px-3 py-2 border rounded"
-        />
-      </div>
-      <div>
-        <label htmlFor="password" className="block">Password</label>
-        <input
-          type="password"
-          id="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="w-full px-3 py-2 border rounded"
-        />
-      </div>
-      <button type="submit" className="w-full py-2 px-4 bg-blue-500 text-white rounded">Login</button>
-    </form>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <h1 className="text-3xl font-bold mb-6 text-black">Financial Planner Login</h1>
+      <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
+        <div>
+          <label htmlFor="email" className="block text-black mb-1">Email</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded text-black bg-white"
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="block text-black mb-1">Password</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded text-black bg-white"
+          />
+        </div>
+        <button type="submit" className="w-full py-2 px-4 bg-black text-white rounded hover:bg-gray-800">Login</button>
+      </form>
+    </div>
   );
 }
