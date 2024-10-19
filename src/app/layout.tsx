@@ -5,7 +5,7 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Erweiterter Persönlicher Finanztracker',
+  title: 'Finanzplaner und Sparkompass',
   description: 'Ein Tool zur Verwaltung Ihrer persönlichen Finanzen',
 }
 
