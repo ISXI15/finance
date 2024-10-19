@@ -163,13 +163,13 @@ export default function PersönlicherFinanztracker() {
   return (
     <div className="container mx-auto p-4 bg-white text-black">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Persönlicher Finanztracker</h1>
+        <h1 className="text-3xl font-bold">Finanzplaner</h1>
         <Button onClick={handleLogout} variant="outline">
           <LogOut className="mr-2 h-4 w-4" /> Abmelden
         </Button>
       </div>
 
-      <Card className="mb-6">
+      <Card className="mb-6 bg-gray-100">
         <CardHeader>
           <CardTitle>Neue Ausgabe hinzufügen</CardTitle>
         </CardHeader>
@@ -204,10 +204,10 @@ export default function PersönlicherFinanztracker() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Essen">Essen</SelectItem>
-                  <SelectItem value="Transport">Transport</SelectItem>
+                  <SelectItem value="Kleidung">Kleidung</SelectItem>
                   <SelectItem value="Unterhaltung">Unterhaltung</SelectItem>
                   <SelectItem value="Nebenkosten">Nebenkosten</SelectItem>
-                  <SelectItem value="Sonstiges">Sonstiges</SelectItem>
+                  <SelectItem value="Fixkosten">Fixkosten</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -292,7 +292,7 @@ export default function PersönlicherFinanztracker() {
                 <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev - 1 + 12) % 12)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                Monatliche Analyse: {MONATE[selectedMonth]} {selectedYear}
+                Monat: {MONATE[selectedMonth]} {selectedYear}
                 <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev + 1) % 12)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -346,7 +346,7 @@ export default function PersönlicherFinanztracker() {
                 <Button variant="outline" size="icon" onClick={() => setSelectedYear(prev => prev - 1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                Jährliche Analyse: {selectedYear}
+                Jahr: {selectedYear}
                 <Button variant="outline" size="icon" onClick={() => setSelectedYear(prev => prev + 1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
