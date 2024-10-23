@@ -123,9 +123,10 @@ const calculateTotalsByType = (transactions: Transaktion[]) => {
   )
 }
 
-const calculateAbsoluteBalanceByCategory = (transactions: Transaktion[]) => {
+const calculateBalanceByCategory = (transactions: Transaktion[]) => {
   return transactions.reduce((acc, t) => {
-    acc[t.kategorie] = (acc[t.kategorie] || 0) + Math.abs(t.betrag)
+    const betrag = t.typ === 'Einnahme' ? t.betrag : -t.betrag
+    acc[t.kategorie] = (acc[t.kategorie] || 0) + betrag
     return acc
   }, {} as Record<string, number>)
 }
@@ -144,7 +145,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
     return (
       <div className="bg-white p-4 border rounded shadow">
         <p className="font-bold">{label}</p>
-        <p>{`Betrag: ${Math.abs(payload[0].value).toFixed(2)} €`}</p>
+        <p>{`Betrag: ${payload[0].value.toFixed(2)} €`}</p>
       </div>
     )
   }
@@ -269,7 +270,7 @@ const PieChartComponent: React.FC<{ data: { name: string; value: number }[] }> =
   </ResponsiveContainer>
 )
 
-export default function PersönlicherFinanztracker() {
+export default function Component() {
   const { transaktionen, addTransaction, removeTransaction } = useTransactions()
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
@@ -285,8 +286,9 @@ export default function PersönlicherFinanztracker() {
   const { einnahmen: monatlicheEinnahmen, ausgaben: monatlicheAusgaben } = calculateTotalsByType(monatlicheTransaktionen)
   const monatlicheBilanz = monatlicheEinnahmen - monatlicheAusgaben
 
-  const monatlicheTransaktionenNachKategorie = calculateAbsoluteBalanceByCategory(monatlicheTransaktionen)
-  const monatlichesDiagrammDaten = Object.entries(monatlicheTransaktionenNachKategorie).map(([name, value]) => ({ name, value }))
+  const monatlicheTransaktionenNachKategorie = calculateBalanceByCategory(monatlicheTransaktionen)
+  const monatlichesDiagrammDaten = Object.entries(monatlicheTransaktionenNachKategorie)
+    .map(([name, value]) => ({ name, value: Math.abs(value) }))
 
   const jährlicheTransaktionenNachMonat = MONATE.map((monat, index) => {
     const monatlicheTransaktionen = transaktionen.filter(t =>
@@ -340,23 +342,28 @@ export default function PersönlicherFinanztracker() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2  gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Transaktionen nach Kategorie</h3>
                   <div className="h-64">
                     <PieChartComponent data={monatlichesDiagrammDaten} />
                   </div>
+
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
-                  <p>Einnahmen diesen Monat: {monatlicheEinnahmen.toFixed(2)} €</p>
-                  <p>Ausgaben diesen Monat: {monatlicheAusgaben.toFixed(2)} €</p>
-                  <p className="font-bold">Bilanz diesen Monat: {monatlicheBilanz.toFixed(2)} €</p>
+                  <p className="text-green-600">Einnahmen diesen Monat: +{monatlicheEinnahmen.toFixed(2)} €</p>
+                  <p className="text-red-600">Ausgaben diesen Monat: -{monatlicheAusgaben.toFixed(2)} €</p>
+                  <p className={`font-bold ${monatlicheBilanz >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    Bilanz diesen Monat: {monatlicheBilanz >= 0 ? '+' : ''}{monatlicheBilanz.toFixed(2)} €
+                  </p>
                   <ul className="mt-4 space-y-2">
                     {Object.entries(monatlicheTransaktionenNachKategorie).map(([kategorie, betrag]) => (
-                      <li key={kategorie} className="flex justify-between">
+                      <li key={kategorie} className="flex justify-between text-black">
                         <span>{kategorie}:</span>
-                        <span>{betrag.toFixed(2)} €</span>
+                        <span>
+                          {betrag >= 0 ? '+' : ''}{betrag.toFixed(2)} €
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -368,10 +375,11 @@ export default function PersönlicherFinanztracker() {
                   {monatlicheTransaktionen.map((transaktion) => (
                     <li key={transaktion.id} className="flex justify-between items-center bg-gray-100 p-2 rounded">
                       <span>
-                        {transaktion.beschreibung} -
-                        {transaktion.betrag.toFixed(2)} € ({transaktion.kategorie}) -
-                        {new Date(transaktion.datum).toLocaleDateString('de-DE')} -
-                        {transaktion.typ}
+                        {transaktion.beschreibung}
+                        <span className={transaktion.typ === 'Einnahme' ? 'text-green-600' : 'text-red-600'}>
+                          {transaktion.typ === 'Einnahme' ? '+' : '-'}{transaktion.betrag.toFixed(2)} €
+                        </span> ({transaktion.kategorie})
+                        {new Date(transaktion.datum).toLocaleDateString('de-DE')}
                       </span>
                       <Button variant="ghost" size="icon" onClick={() => removeTransaction(transaktion.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -417,9 +425,12 @@ export default function PersönlicherFinanztracker() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Jährliche Zusammenfassung</h3>
-                  <p>Gesamteinnahmen dieses Jahr: {jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.einnahmen, 0).toFixed(2)} €</p>
-                  <p>Gesamtausgaben dieses Jahr: {jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.ausgaben, 0).toFixed(2)} €</p>
-                  <p className="font-bold">Jahresbilanz: {jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.bilanz, 0).toFixed(2)} €</p>
+                  <p className="text-black-600">Gesamteinnahmen dieses Jahr: +{jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.einnahmen, 0).toFixed(2)} €</p>
+                  <p className="text-black-600">Gesamtausgaben dieses Jahr: -{jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.ausgaben, 0).toFixed(2)} €</p>
+                  <p className={`font-bold ${jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.bilanz, 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    Jahresbilanz: {jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.bilanz, 0) >= 0 ? '+' : ''}
+                    {jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.bilanz, 0).toFixed(2)} €
+                  </p>
                 </div>
               </div>
             </CardContent>
