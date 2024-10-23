@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, TooltipProps } from 'recharts'
 import { Plus, Trash2, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from "@/components/ui/input"
@@ -68,6 +68,26 @@ const deleteTransaktion = async (id: string) => {
     request.onerror = () => reject('Fehler beim Löschen der Transaktion')
     request.onsuccess = () => resolve(request.result)
   })
+}
+
+interface CustomTooltipProps extends Omit<TooltipProps<number, string>, 'payload'> {
+  payload?: Array<{
+    value: number
+    name: string
+    dataKey: string
+  }>
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-4 border rounded shadow">
+        <p className="font-bold">{label}</p>
+        <p>{`Betrag: ${payload[0].value.toFixed(2)} €`}</p>
+      </div>
+    )
+  }
+  return null
 }
 
 export default function PersönlicherFinanztracker() {
@@ -187,18 +207,6 @@ export default function PersönlicherFinanztracker() {
 
   const handleLogout = () => {
     router.push('/login')
-  }
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-4 border rounded shadow">
-          <p className="font-bold">{label}</p>
-          <p>{`Betrag: ${payload[0].value.toFixed(2)} €`}</p>
-        </div>
-      )
-    }
-    return null
   }
 
   return (
@@ -430,7 +438,7 @@ export default function PersönlicherFinanztracker() {
                       <BarChart data={jährlicheTransaktionenNachMonat}>
                         <XAxis dataKey="name" />
                         <YAxis />
-                        <Tooltip />
+                        <Tooltip content={<CustomTooltip />} />
                         <Legend />
                         <Bar dataKey="einnahmen" fill="#4CAF50" />
                         <Bar dataKey="ausgaben" fill="#F44336" />
