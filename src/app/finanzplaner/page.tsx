@@ -352,8 +352,8 @@ export default function Component() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
-                  <p className="text-green-600">Einnahmen diesen Monat: +{monatlicheEinnahmen.toFixed(2)} €</p>
-                  <p className="text-red-600">Ausgaben diesen Monat: -{monatlicheAusgaben.toFixed(2)} €</p>
+                  <p className="text-black-600">Einnahmen diesen Monat: +{monatlicheEinnahmen.toFixed(2)} €</p>
+                  <p className="text-black-600">Ausgaben diesen Monat: -{monatlicheAusgaben.toFixed(2)} €</p>
                   <p className={`font-bold ${monatlicheBilanz >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     Bilanz diesen Monat: {monatlicheBilanz >= 0 ? '+' : ''}{monatlicheBilanz.toFixed(2)} €
                   </p>
