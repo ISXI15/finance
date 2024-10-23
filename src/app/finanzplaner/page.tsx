@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, TooltipProps } from 'recharts'
 import { Plus, Trash2, ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
@@ -24,7 +24,7 @@ type Transaktion = {
 const FARBEN = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 
-// IndexedDB Funktionen (angepasst für Transaktionen)
+// IndexedDB Funktionen
 const initDB = () => {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('FinanzTrackerDB', 2)
@@ -70,6 +70,68 @@ const deleteTransaktion = async (id: string) => {
   })
 }
 
+// Custom Hooks
+const useTransactions = () => {
+  const [transaktionen, setTransaktionen] = useState<Transaktion[]>([])
+
+  useEffect(() => {
+    const loadTransaktionen = async () => {
+      try {
+        const loadedTransaktionen = await getAllTransaktionen()
+        setTransaktionen(loadedTransaktionen)
+      } catch (error) {
+        console.error('Fehler beim Laden der Transaktionen:', error)
+      }
+    }
+    loadTransaktionen()
+  }, [])
+
+  const addTransaction = async (newTransaction: Omit<Transaktion, 'id'>) => {
+    const transactionWithId = { ...newTransaction, id: Date.now().toString() }
+    try {
+      await addTransaktion(transactionWithId)
+      setTransaktionen([...transaktionen, transactionWithId])
+    } catch (error) {
+      console.error('Fehler beim Hinzufügen der Transaktion:', error)
+    }
+  }
+
+  const removeTransaction = async (id: string) => {
+    try {
+      await deleteTransaktion(id)
+      setTransaktionen(transaktionen.filter(transaktion => transaktion.id !== id))
+    } catch (error) {
+      console.error('Fehler beim Entfernen der Transaktion:', error)
+    }
+  }
+
+  return { transaktionen, addTransaction, removeTransaction }
+}
+
+// Utility Functions
+const calculateTotalsByType = (transactions: Transaktion[]) => {
+  return transactions.reduce(
+    (acc, t) => {
+      if (t.typ === 'Einnahme') {
+        acc.einnahmen += t.betrag
+      } else {
+        acc.ausgaben += t.betrag
+      }
+      return acc
+    },
+    { einnahmen: 0, ausgaben: 0 }
+  )
+}
+
+const calculateBalanceByCategory = (transactions: Transaktion[]) => {
+  return transactions.reduce((acc, t) => {
+    const betrag = t.typ === 'Einnahme' ? t.betrag : -t.betrag
+    acc[t.kategorie] = (acc[t.kategorie] || 0) + betrag
+    return acc
+  }, {} as Record<string, number>)
+}
+
+// Components
 interface CustomTooltipProps extends Omit<TooltipProps<number, string>, 'payload'> {
   payload?: Array<{
     value: number
@@ -90,100 +152,141 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   return null
 }
 
-export default function PersönlicherFinanztracker() {
-  const [transaktionen, setTransaktionen] = useState<Transaktion[]>([])
+const TransactionForm: React.FC<{
+  onSubmit: (transaction: Omit<Transaktion, 'id'>) => void
+}> = ({ onSubmit }) => {
   const [beschreibung, setBeschreibung] = useState('')
   const [betrag, setBetrag] = useState('')
   const [kategorie, setKategorie] = useState('')
   const [datum, setDatum] = useState('')
   const [typ, setTyp] = useState<'Einnahme' | 'Ausgabe'>('Ausgabe')
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
-  const router = useRouter()
 
-  useEffect(() => {
-    const loadTransaktionen = async () => {
-      try {
-        const loadedTransaktionen = await getAllTransaktionen()
-        setTransaktionen(loadedTransaktionen)
-      } catch (error) {
-        console.error('Fehler beim Laden der Transaktionen:', error)
-      }
-    }
-    loadTransaktionen()
-  }, [])
-
-  const transaktionHinzufügen = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (beschreibung && betrag && kategorie && datum) {
-      const neueTransaktion: Transaktion = {
-        id: Date.now().toString(),
+      onSubmit({
         beschreibung,
         betrag: parseFloat(betrag),
         kategorie,
         datum,
         typ
-      }
-      try {
-        await addTransaktion(neueTransaktion)
-        setTransaktionen([...transaktionen, neueTransaktion])
-        setBeschreibung('')
-        setBetrag('')
-        setKategorie('')
-        setDatum('')
-        setTyp('Ausgabe')
-      } catch (error) {
-        console.error('Fehler beim Hinzufügen der Transaktion:', error)
-      }
+      })
+      setBeschreibung('')
+      setBetrag('')
+      setKategorie('')
+      setDatum('')
+      setTyp('Ausgabe')
     }
   }
 
-  const transaktionEntfernen = async (id: string) => {
-    try {
-      await deleteTransaktion(id)
-      setTransaktionen(transaktionen.filter(transaktion => transaktion.id !== id))
-    } catch (error) {
-      console.error('Fehler beim Entfernen der Transaktion:', error)
-    }
-  }
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="beschreibung">Beschreibung</Label>
+        <Input
+          id="beschreibung"
+          value={beschreibung}
+          onChange={(e) => setBeschreibung(e.target.value)}
+          placeholder="Transaktionsbeschreibung eingeben"
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="betrag">Betrag (€)</Label>
+        <Input
+          id="betrag"
+          type="number"
+          value={betrag}
+          onChange={(e) => setBetrag(e.target.value)}
+          placeholder="Betrag eingeben"
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="kategorie">Kategorie</Label>
+        <Select value={kategorie} onValueChange={setKategorie} required>
+          <SelectTrigger>
+            <SelectValue placeholder="Kategorie auswählen" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Essen">Essen</SelectItem>
+            <SelectItem value="Kleidung">Kleidung</SelectItem>
+            <SelectItem value="Unterhaltung">Unterhaltung</SelectItem>
+            <SelectItem value="Nebenkosten">Nebenkosten</SelectItem>
+            <SelectItem value="Fixkosten">Fixkosten</SelectItem>
+            <SelectItem value="Gehalt">Gehalt</SelectItem>
+            <SelectItem value="Sonstiges">Sonstiges</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor="datum">Datum</Label>
+        <Input
+          id="datum"
+          type="date"
+          value={datum}
+          onChange={(e) => setDatum(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <Label>Typ</Label>
+        <RadioGroup value={typ} onValueChange={(value: 'Einnahme' | 'Ausgabe') => setTyp(value)}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="Einnahme" id="einnahme" />
+            <Label htmlFor="einnahme">Einnahme</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="Ausgabe" id="ausgabe" />
+            <Label htmlFor="ausgabe">Ausgabe</Label>
+          </div>
+        </RadioGroup>
+      </div>
+      <Button type="submit">
+        <Plus className="mr-2 h-4 w-4" /> Transaktion hinzufügen
+      </Button>
+    </form>
+  )
+}
 
-  const gesamtEinnahmen = transaktionen
-    .filter(t => t.typ === 'Einnahme')
-    .reduce((summe, t) => summe + t.betrag, 0)
+const PieChartComponent: React.FC<{ data: { name: string; value: number }[] }> = ({ data }) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <PieChart>
+      <Pie
+        data={data}
+        cx="50%"
+        cy="50%"
+        outerRadius={80}
+        fill="#8884d8"
+        dataKey="value"
+        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+      >
+        {data.map((entry, index) => (
+          <Cell key={`cell-${index}`} fill={FARBEN[index % FARBEN.length]} />
+        ))}
+      </Pie>
+      <Tooltip content={<CustomTooltip />} />
+    </PieChart>
+  </ResponsiveContainer>
+)
 
-  const gesamtAusgaben = transaktionen
-    .filter(t => t.typ === 'Ausgabe')
-    .reduce((summe, t) => summe + t.betrag, 0)
+export default function PersönlicherFinanztracker() {
+  const { transaktionen, addTransaction, removeTransaction } = useTransactions()
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
+  const router = useRouter()
 
-  const bilanz = gesamtEinnahmen - gesamtAusgaben
+  const monatlicheTransaktionen = useMemo(() =>
+    transaktionen.filter(t =>
+      new Date(t.datum).getFullYear() === selectedYear &&
+      new Date(t.datum).getMonth() === selectedMonth
+    ), [transaktionen, selectedYear, selectedMonth]
+  )
 
-  const transaktionenNachKategorie = transaktionen.reduce((acc, t) => {
-    const betrag = t.typ === 'Einnahme' ? t.betrag : -t.betrag
-    acc[t.kategorie] = (acc[t.kategorie] || 0) + betrag
-    return acc
-  }, {} as Record<string, number>)
-
-  const tortendiagrammDaten = Object.entries(transaktionenNachKategorie).map(([name, value]) => ({ name, value }))
-
-  const monatlicheTransaktionen = transaktionen
-    .filter(t => new Date(t.datum).getFullYear() === selectedYear && new Date(t.datum).getMonth() === selectedMonth)
-
-  const monatlicheEinnahmen = monatlicheTransaktionen
-    .filter(t => t.typ === 'Einnahme')
-    .reduce((acc, t) => acc + t.betrag, 0)
-
-  const monatlicheAusgaben = monatlicheTransaktionen
-    .filter(t => t.typ === 'Ausgabe')
-    .reduce((acc, t) => acc + t.betrag, 0)
-
+  const { einnahmen: monatlicheEinnahmen, ausgaben: monatlicheAusgaben } = calculateTotalsByType(monatlicheTransaktionen)
   const monatlicheBilanz = monatlicheEinnahmen - monatlicheAusgaben
 
-  const monatlicheTransaktionenNachKategorie = monatlicheTransaktionen.reduce((acc, t) => {
-    const betrag = t.typ === 'Einnahme' ? t.betrag : -t.betrag
-    acc[t.kategorie] = (acc[t.kategorie] || 0) + betrag
-    return acc
-  }, {} as Record<string, number>)
-
+  const monatlicheTransaktionenNachKategorie = calculateBalanceByCategory(monatlicheTransaktionen)
   const monatlichesDiagrammDaten = Object.entries(monatlicheTransaktionenNachKategorie).map(([name, value]) => ({ name, value }))
 
   const jährlicheTransaktionenNachMonat = MONATE.map((monat, index) => {
@@ -191,12 +294,7 @@ export default function PersönlicherFinanztracker() {
       new Date(t.datum).getFullYear() === selectedYear &&
       new Date(t.datum).getMonth() === index
     )
-    const einnahmen = monatlicheTransaktionen
-      .filter(t => t.typ === 'Einnahme')
-      .reduce((acc, t) => acc + t.betrag, 0)
-    const ausgaben = monatlicheTransaktionen
-      .filter(t => t.typ === 'Ausgabe')
-      .reduce((acc, t) => acc + t.betrag, 0)
+    const { einnahmen, ausgaben } = calculateTotalsByType(monatlicheTransaktionen)
     return {
       name: monat,
       einnahmen,
@@ -205,15 +303,11 @@ export default function PersönlicherFinanztracker() {
     }
   })
 
-  const handleLogout = () => {
-    router.push('/login')
-  }
-
   return (
     <div className="container mx-auto p-4 bg-white text-black">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Finanzplaner</h1>
-        <Button onClick={handleLogout} variant="outline">
+        <Button onClick={() => router.push('/login')} variant="outline">
           <LogOut className="mr-2 h-4 w-4" /> Abmelden
         </Button>
       </div>
@@ -223,141 +317,15 @@ export default function PersönlicherFinanztracker() {
           <CardTitle>Neue Transaktion hinzufügen</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={transaktionHinzufügen} className="space-y-4">
-            <div>
-              <Label htmlFor="beschreibung">Beschreibung</Label>
-              <Input
-                id="beschreibung"
-                value={beschreibung}
-                onChange={(e) => setBeschreibung(e.target.value)}
-                placeholder="Transaktionsbeschreibung eingeben"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="betrag">Betrag (€)</Label>
-              <Input
-                id="betrag"
-                type="number"
-                value={betrag}
-                onChange={(e) => setBetrag(e.target.value)}
-                placeholder="Betrag eingeben"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="kategorie">Kategorie</Label>
-              <Select value={kategorie} onValueChange={setKategorie} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Kategorie auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Essen">Essen</SelectItem>
-                  <SelectItem value="Kleidung">Kleidung</SelectItem>
-                  <SelectItem value="Unterhaltung">Unterhaltung</SelectItem>
-                  <SelectItem value="Nebenkosten">Nebenkosten</SelectItem>
-                  <SelectItem value="Fixkosten">Fixkosten</SelectItem>
-                  <SelectItem value="Gehalt">Gehalt</SelectItem>
-                  <SelectItem value="Sonstiges">Sonstiges</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="datum">Datum</Label>
-              <Input
-                id="datum"
-                type="date"
-                value={datum}
-                onChange={(e) => setDatum(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label>Typ</Label>
-              <RadioGroup value={typ} onValueChange={(value: 'Einnahme' | 'Ausgabe') => setTyp(value)}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Einnahme" id="einnahme" />
-                  <Label htmlFor="einnahme">Einnahme</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Ausgabe" id="ausgabe" />
-                  <Label htmlFor="ausgabe">Ausgabe</Label>
-                </div>
-              </RadioGroup>
-            </div>
-            <Button type="submit">
-              <Plus className="mr-2 h-4 w-4" /> Transaktion hinzufügen
-            </Button>
-          </form>
+          <TransactionForm onSubmit={addTransaction} />
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="übersicht" className="space-y-4">
+      <Tabs defaultValue="monatlich" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="übersicht">Übersicht</TabsTrigger>
           <TabsTrigger value="monatlich">Monatliche Analyse</TabsTrigger>
           <TabsTrigger value="jährlich">Jährliche Analyse</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="übersicht">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Letzte Transaktionen</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {transaktionen.slice().reverse().map((transaktion) => (
-                    <li key={transaktion.id} className="flex justify-between items-center bg-gray-100 p-2 rounded">
-                      <span>
-                        {transaktion.beschreibung} - {transaktion.betrag.toFixed(2)} €
-                        ({transaktion.kategorie}) - {new Date(transaktion.datum).toLocaleDateString('de-DE')}
-                        - {transaktion.typ}
-                      </span>
-                      <Button variant="ghost" size="icon" onClick={() => transaktionEntfernen(transaktion.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Finanzübersicht</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-
-                    <PieChart>
-                      <Pie
-                        data={tortendiagrammDaten}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {tortendiagrammDaten.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={FARBEN[index % FARBEN.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-4 space-y-2">
-                  <p className="text-center">Gesamteinnahmen: {gesamtEinnahmen.toFixed(2)} €</p>
-                  <p className="text-center">Gesamtausgaben: {gesamtAusgaben.toFixed(2)} €</p>
-                  <p className="text-center font-bold">Bilanz: {bilanz.toFixed(2)} €</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         <TabsContent value="monatlich">
           <Card>
@@ -377,28 +345,11 @@ export default function PersönlicherFinanztracker() {
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Transaktionen nach Kategorie</h3>
                   <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={monatlichesDiagrammDaten}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {monatlichesDiagrammDaten.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={FARBEN[index % FARBEN.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <PieChartComponent data={monatlichesDiagrammDaten} />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
+                  <h3  className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
                   <p>Einnahmen diesen Monat: {monatlicheEinnahmen.toFixed(2)} €</p>
                   <p>Ausgaben diesen Monat: {monatlicheAusgaben.toFixed(2)} €</p>
                   <p className="font-bold">Bilanz diesen Monat: {monatlicheBilanz.toFixed(2)} €</p>
@@ -411,6 +362,24 @@ export default function PersönlicherFinanztracker() {
                     ))}
                   </ul>
                 </div>
+              </div>
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Transaktionen dieses Monats</h3>
+                <ul className="space-y-2">
+                  {monatlicheTransaktionen.map((transaktion) => (
+                    <li key={transaktion.id} className="flex justify-between items-center bg-gray-100 p-2 rounded">
+                      <span>
+                        {transaktion.beschreibung} -
+                        {transaktion.betrag.toFixed(2)} € ({transaktion.kategorie}) -
+                        {new Date(transaktion.datum).toLocaleDateString('de-DE')} -
+                        {transaktion.typ}
+                      </span>
+                      <Button variant="ghost" size="icon" onClick={() => removeTransaction(transaktion.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </CardContent>
           </Card>
