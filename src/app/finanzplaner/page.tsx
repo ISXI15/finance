@@ -123,10 +123,9 @@ const calculateTotalsByType = (transactions: Transaktion[]) => {
   )
 }
 
-const calculateBalanceByCategory = (transactions: Transaktion[]) => {
+const calculateAbsoluteBalanceByCategory = (transactions: Transaktion[]) => {
   return transactions.reduce((acc, t) => {
-    const betrag = t.typ === 'Einnahme' ? t.betrag : -t.betrag
-    acc[t.kategorie] = (acc[t.kategorie] || 0) + betrag
+    acc[t.kategorie] = (acc[t.kategorie] || 0) + Math.abs(t.betrag)
     return acc
   }, {} as Record<string, number>)
 }
@@ -145,7 +144,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
     return (
       <div className="bg-white p-4 border rounded shadow">
         <p className="font-bold">{label}</p>
-        <p>{`Betrag: ${payload[0].value.toFixed(2)} €`}</p>
+        <p>{`Betrag: ${Math.abs(payload[0].value).toFixed(2)} €`}</p>
       </div>
     )
   }
@@ -286,7 +285,7 @@ export default function PersönlicherFinanztracker() {
   const { einnahmen: monatlicheEinnahmen, ausgaben: monatlicheAusgaben } = calculateTotalsByType(monatlicheTransaktionen)
   const monatlicheBilanz = monatlicheEinnahmen - monatlicheAusgaben
 
-  const monatlicheTransaktionenNachKategorie = calculateBalanceByCategory(monatlicheTransaktionen)
+  const monatlicheTransaktionenNachKategorie = calculateAbsoluteBalanceByCategory(monatlicheTransaktionen)
   const monatlichesDiagrammDaten = Object.entries(monatlicheTransaktionenNachKategorie).map(([name, value]) => ({ name, value }))
 
   const jährlicheTransaktionenNachMonat = MONATE.map((monat, index) => {
@@ -341,7 +340,7 @@ export default function PersönlicherFinanztracker() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2  gap-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Transaktionen nach Kategorie</h3>
                   <div className="h-64">
@@ -349,7 +348,7 @@ export default function PersönlicherFinanztracker() {
                   </div>
                 </div>
                 <div>
-                  <h3  className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
+                  <h3 className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
                   <p>Einnahmen diesen Monat: {monatlicheEinnahmen.toFixed(2)} €</p>
                   <p>Ausgaben diesen Monat: {monatlicheAusgaben.toFixed(2)} €</p>
                   <p className="font-bold">Bilanz diesen Monat: {monatlicheBilanz.toFixed(2)} €</p>
