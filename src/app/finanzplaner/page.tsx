@@ -10,154 +10,195 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
-type Ausgabe = {
+type Transaktion = {
   id: string
   beschreibung: string
   betrag: number
   kategorie: string
   datum: string
+  typ: 'Einnahme' | 'Ausgabe'
 }
 
 const FARBEN = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 
-// IndexedDB Funktionen (unverändert)
+// IndexedDB Funktionen (angepasst für Transaktionen)
 const initDB = () => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('FinanzTrackerDB', 1)
+    const request = indexedDB.open('FinanzTrackerDB', 2)
     request.onerror = () => reject('IndexedDB konnte nicht geöffnet werden')
     request.onsuccess = () => resolve(request.result)
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result
-      db.createObjectStore('ausgaben', { keyPath: 'id' })
+      db.createObjectStore('transaktionen', { keyPath: 'id' })
     }
   })
 }
 
-const addAusgabe = async (ausgabe: Ausgabe) => {
+const addTransaktion = async (transaktion: Transaktion) => {
   const db = await initDB() as IDBDatabase
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['ausgaben'], 'readwrite')
-    const store = transaction.objectStore('ausgaben')
-    const request = store.add(ausgabe)
-    request.onerror = () => reject('Fehler beim Hinzufügen der Ausgabe')
+    const transaction = db.transaction(['transaktionen'], 'readwrite')
+    const store = transaction.objectStore('transaktionen')
+    const request = store.add(transaktion)
+    request.onerror = () => reject('Fehler beim Hinzufügen der Transaktion')
     request.onsuccess = () => resolve(request.result)
   })
 }
 
-const getAllAusgaben = async () => {
+const getAllTransaktionen = async () => {
   const db = await initDB() as IDBDatabase
-  return new Promise<Ausgabe[]>((resolve, reject) => {
-    const transaction = db.transaction(['ausgaben'], 'readonly')
-    const store = transaction.objectStore('ausgaben')
+  return new Promise<Transaktion[]>((resolve, reject) => {
+    const transaction = db.transaction(['transaktionen'], 'readonly')
+    const store = transaction.objectStore('transaktionen')
     const request = store.getAll()
-    request.onerror = () => reject('Fehler beim Abrufen der Ausgaben')
+    request.onerror = () => reject('Fehler beim Abrufen der Transaktionen')
     request.onsuccess = () => resolve(request.result)
   })
 }
 
-const deleteAusgabe = async (id: string) => {
+const deleteTransaktion = async (id: string) => {
   const db = await initDB() as IDBDatabase
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['ausgaben'], 'readwrite')
-    const store = transaction.objectStore('ausgaben')
+    const transaction = db.transaction(['transaktionen'], 'readwrite')
+    const store = transaction.objectStore('transaktionen')
     const request = store.delete(id)
-    request.onerror = () => reject('Fehler beim Löschen der Ausgabe')
+    request.onerror = () => reject('Fehler beim Löschen der Transaktion')
     request.onsuccess = () => resolve(request.result)
   })
 }
 
 export default function PersönlicherFinanztracker() {
-  const [ausgaben, setAusgaben] = useState<Ausgabe[]>([])
+  const [transaktionen, setTransaktionen] = useState<Transaktion[]>([])
   const [beschreibung, setBeschreibung] = useState('')
   const [betrag, setBetrag] = useState('')
   const [kategorie, setKategorie] = useState('')
   const [datum, setDatum] = useState('')
+  const [typ, setTyp] = useState<'Einnahme' | 'Ausgabe'>('Ausgabe')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const router = useRouter()
 
   useEffect(() => {
-    const loadAusgaben = async () => {
+    const loadTransaktionen = async () => {
       try {
-        const loadedAusgaben = await getAllAusgaben()
-        setAusgaben(loadedAusgaben)
+        const loadedTransaktionen = await getAllTransaktionen()
+        setTransaktionen(loadedTransaktionen)
       } catch (error) {
-        console.error('Fehler beim Laden der Ausgaben:', error)
+        console.error('Fehler beim Laden der Transaktionen:', error)
       }
     }
-    loadAusgaben()
+    loadTransaktionen()
   }, [])
 
-  const ausgabeHinzufügen = async (e: React.FormEvent) => {
+  const transaktionHinzufügen = async (e: React.FormEvent) => {
     e.preventDefault()
     if (beschreibung && betrag && kategorie && datum) {
-      const neueAusgabe: Ausgabe = {
+      const neueTransaktion: Transaktion = {
         id: Date.now().toString(),
         beschreibung,
         betrag: parseFloat(betrag),
         kategorie,
-        datum
+        datum,
+        typ
       }
       try {
-        await addAusgabe(neueAusgabe)
-        setAusgaben([...ausgaben, neueAusgabe])
+        await addTransaktion(neueTransaktion)
+        setTransaktionen([...transaktionen, neueTransaktion])
         setBeschreibung('')
         setBetrag('')
         setKategorie('')
         setDatum('')
+        setTyp('Ausgabe')
       } catch (error) {
-        console.error('Fehler beim Hinzufügen der Ausgabe:', error)
+        console.error('Fehler beim Hinzufügen der Transaktion:', error)
       }
     }
   }
 
-  const ausgabeEntfernen = async (id: string) => {
+  const transaktionEntfernen = async (id: string) => {
     try {
-      await deleteAusgabe(id)
-      setAusgaben(ausgaben.filter(ausgabe => ausgabe.id !== id))
+      await deleteTransaktion(id)
+      setTransaktionen(transaktionen.filter(transaktion => transaktion.id !== id))
     } catch (error) {
-      console.error('Fehler beim Entfernen der Ausgabe:', error)
+      console.error('Fehler beim Entfernen der Transaktion:', error)
     }
   }
 
-  const gesamtausgaben = ausgaben.reduce((summe, ausgabe) => summe + ausgabe.betrag, 0)
+  const gesamtEinnahmen = transaktionen
+    .filter(t => t.typ === 'Einnahme')
+    .reduce((summe, t) => summe + t.betrag, 0)
 
-  const ausgabenNachKategorie = ausgaben.reduce((acc, ausgabe) => {
-    acc[ausgabe.kategorie] = (acc[ausgabe.kategorie] || 0) + ausgabe.betrag
+  const gesamtAusgaben = transaktionen
+    .filter(t => t.typ === 'Ausgabe')
+    .reduce((summe, t) => summe + t.betrag, 0)
+
+  const bilanz = gesamtEinnahmen - gesamtAusgaben
+
+  const transaktionenNachKategorie = transaktionen.reduce((acc, t) => {
+    const betrag = t.typ === 'Einnahme' ? t.betrag : -t.betrag
+    acc[t.kategorie] = (acc[t.kategorie] || 0) + betrag
     return acc
   }, {} as Record<string, number>)
 
-  const tortendiagrammDaten = Object.entries(ausgabenNachKategorie).map(([name, value]) => ({ name, value }))
+  const tortendiagrammDaten = Object.entries(transaktionenNachKategorie).map(([name, value]) => ({ name, value }))
 
-  const monatlicheAusgaben = ausgaben
-    .filter(ausgabe => new Date(ausgabe.datum).getFullYear() === selectedYear && new Date(ausgabe.datum).getMonth() === selectedMonth)
-    .reduce((acc, ausgabe) => acc + ausgabe.betrag, 0)
+  const monatlicheTransaktionen = transaktionen
+    .filter(t => new Date(t.datum).getFullYear() === selectedYear && new Date(t.datum).getMonth() === selectedMonth)
 
-  const jährlicheAusgaben = ausgaben
-    .filter(ausgabe => new Date(ausgabe.datum).getFullYear() === selectedYear)
-    .reduce((acc, ausgabe) => acc + ausgabe.betrag, 0)
+  const monatlicheEinnahmen = monatlicheTransaktionen
+    .filter(t => t.typ === 'Einnahme')
+    .reduce((acc, t) => acc + t.betrag, 0)
 
-  const monatlicheAusgabenNachKategorie = ausgaben
-    .filter(ausgabe => new Date(ausgabe.datum).getFullYear() === selectedYear && new Date(ausgabe.datum).getMonth() === selectedMonth)
-    .reduce((acc, ausgabe) => {
-      acc[ausgabe.kategorie] = (acc[ausgabe.kategorie] || 0) + ausgabe.betrag
-      return acc
-    }, {} as Record<string, number>)
+  const monatlicheAusgaben = monatlicheTransaktionen
+    .filter(t => t.typ === 'Ausgabe')
+    .reduce((acc, t) => acc + t.betrag, 0)
 
-  const monatlichesDiagrammDaten = Object.entries(monatlicheAusgabenNachKategorie).map(([name, value]) => ({ name, value }))
+  const monatlicheBilanz = monatlicheEinnahmen - monatlicheAusgaben
 
-  const jährlicheAusgabenNachMonat = MONATE.map((monat, index) => ({
-    name: monat,
-    betrag: ausgaben
-      .filter(ausgabe => new Date(ausgabe.datum).getFullYear() === selectedYear && new Date(ausgabe.datum).getMonth() === index)
-      .reduce((acc, ausgabe) => acc + ausgabe.betrag, 0)
-  }))
+  const monatlicheTransaktionenNachKategorie = monatlicheTransaktionen.reduce((acc, t) => {
+    const betrag = t.typ === 'Einnahme' ? t.betrag : -t.betrag
+    acc[t.kategorie] = (acc[t.kategorie] || 0) + betrag
+    return acc
+  }, {} as Record<string, number>)
+
+  const monatlichesDiagrammDaten = Object.entries(monatlicheTransaktionenNachKategorie).map(([name, value]) => ({ name, value }))
+
+  const jährlicheTransaktionenNachMonat = MONATE.map((monat, index) => {
+    const monatlicheTransaktionen = transaktionen.filter(t =>
+      new Date(t.datum).getFullYear() === selectedYear &&
+      new Date(t.datum).getMonth() === index
+    )
+    const einnahmen = monatlicheTransaktionen
+      .filter(t => t.typ === 'Einnahme')
+      .reduce((acc, t) => acc + t.betrag, 0)
+    const ausgaben = monatlicheTransaktionen
+      .filter(t => t.typ === 'Ausgabe')
+      .reduce((acc, t) => acc + t.betrag, 0)
+    return {
+      name: monat,
+      einnahmen,
+      ausgaben,
+      bilanz: einnahmen - ausgaben
+    }
+  })
 
   const handleLogout = () => {
-    // Here you would typically handle logout logic
     router.push('/login')
+  }
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 border rounded shadow">
+          <p className="font-bold">{label}</p>
+          <p>{`Betrag: ${payload[0].value.toFixed(2)} €`}</p>
+        </div>
+      )
+    }
+    return null
   }
 
   return (
@@ -171,17 +212,17 @@ export default function PersönlicherFinanztracker() {
 
       <Card className="mb-6 bg-gray-100">
         <CardHeader>
-          <CardTitle>Neue Ausgabe hinzufügen</CardTitle>
+          <CardTitle>Neue Transaktion hinzufügen</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={ausgabeHinzufügen} className="space-y-4">
+          <form onSubmit={transaktionHinzufügen} className="space-y-4">
             <div>
               <Label htmlFor="beschreibung">Beschreibung</Label>
               <Input
                 id="beschreibung"
                 value={beschreibung}
                 onChange={(e) => setBeschreibung(e.target.value)}
-                placeholder="Ausgabenbeschreibung eingeben"
+                placeholder="Transaktionsbeschreibung eingeben"
                 required
               />
             </div>
@@ -208,6 +249,8 @@ export default function PersönlicherFinanztracker() {
                   <SelectItem value="Unterhaltung">Unterhaltung</SelectItem>
                   <SelectItem value="Nebenkosten">Nebenkosten</SelectItem>
                   <SelectItem value="Fixkosten">Fixkosten</SelectItem>
+                  <SelectItem value="Gehalt">Gehalt</SelectItem>
+                  <SelectItem value="Sonstiges">Sonstiges</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -221,8 +264,21 @@ export default function PersönlicherFinanztracker() {
                 required
               />
             </div>
+            <div>
+              <Label>Typ</Label>
+              <RadioGroup value={typ} onValueChange={(value: 'Einnahme' | 'Ausgabe') => setTyp(value)}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Einnahme" id="einnahme" />
+                  <Label htmlFor="einnahme">Einnahme</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Ausgabe" id="ausgabe" />
+                  <Label htmlFor="ausgabe">Ausgabe</Label>
+                </div>
+              </RadioGroup>
+            </div>
             <Button type="submit">
-              <Plus className="mr-2 h-4 w-4" /> Ausgabe hinzufügen
+              <Plus className="mr-2 h-4 w-4" /> Transaktion hinzufügen
             </Button>
           </form>
         </CardContent>
@@ -239,14 +295,18 @@ export default function PersönlicherFinanztracker() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Letzte Ausgaben</CardTitle>
+                <CardTitle>Letzte Transaktionen</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {ausgaben.slice().reverse().map((ausgabe) => (
-                    <li key={ausgabe.id} className="flex justify-between items-center bg-gray-100 p-2 rounded">
-                      <span>{ausgabe.beschreibung} - {ausgabe.betrag.toFixed(2)} € ({ausgabe.kategorie}) - {new Date(ausgabe.datum).toLocaleDateString('de-DE')}</span>
-                      <Button variant="ghost" size="icon" onClick={() => ausgabeEntfernen(ausgabe.id)}>
+                  {transaktionen.slice().reverse().map((transaktion) => (
+                    <li key={transaktion.id} className="flex justify-between items-center bg-gray-100 p-2 rounded">
+                      <span>
+                        {transaktion.beschreibung} - {transaktion.betrag.toFixed(2)} €
+                        ({transaktion.kategorie}) - {new Date(transaktion.datum).toLocaleDateString('de-DE')}
+                        - {transaktion.typ}
+                      </span>
+                      <Button variant="ghost" size="icon" onClick={() => transaktionEntfernen(transaktion.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </li>
@@ -257,11 +317,12 @@ export default function PersönlicherFinanztracker() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Ausgabenübersicht</CardTitle>
+                <CardTitle>Finanzübersicht</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
+
                     <PieChart>
                       <Pie
                         data={tortendiagrammDaten}
@@ -276,10 +337,15 @@ export default function PersönlicherFinanztracker() {
                           <Cell key={`cell-${index}`} fill={FARBEN[index % FARBEN.length]} />
                         ))}
                       </Pie>
+                      <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <p className="text-center mt-4">Gesamtausgaben: {gesamtausgaben.toFixed(2)} €</p>
+                <div className="mt-4 space-y-2">
+                  <p className="text-center">Gesamteinnahmen: {gesamtEinnahmen.toFixed(2)} €</p>
+                  <p className="text-center">Gesamtausgaben: {gesamtAusgaben.toFixed(2)} €</p>
+                  <p className="text-center font-bold">Bilanz: {bilanz.toFixed(2)} €</p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -301,7 +367,7 @@ export default function PersönlicherFinanztracker() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Ausgaben nach Kategorie</h3>
+                  <h3 className="text-lg font-semibold mb-2">Transaktionen nach Kategorie</h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -318,15 +384,18 @@ export default function PersönlicherFinanztracker() {
                             <Cell key={`cell-${index}`} fill={FARBEN[index % FARBEN.length]} />
                           ))}
                         </Pie>
+                        <Tooltip content={<CustomTooltip />} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
-                  <p>Gesamtausgaben diesen Monat: {monatlicheAusgaben.toFixed(2)} €</p>
+                  <p>Einnahmen diesen Monat: {monatlicheEinnahmen.toFixed(2)} €</p>
+                  <p>Ausgaben diesen Monat: {monatlicheAusgaben.toFixed(2)} €</p>
+                  <p className="font-bold">Bilanz diesen Monat: {monatlicheBilanz.toFixed(2)} €</p>
                   <ul className="mt-4 space-y-2">
-                    {Object.entries(monatlicheAusgabenNachKategorie).map(([kategorie, betrag]) => (
+                    {Object.entries(monatlicheTransaktionenNachKategorie).map(([kategorie, betrag]) => (
                       <li key={kategorie} className="flex justify-between">
                         <span>{kategorie}:</span>
                         <span>{betrag.toFixed(2)} €</span>
@@ -355,23 +424,26 @@ export default function PersönlicherFinanztracker() {
             <CardContent>
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Jährliche Ausgabenübersicht</h3>
+                  <h3 className="text-lg font-semibold mb-2">Jährliche Finanzübersicht</h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={jährlicheAusgabenNachMonat}>
+                      <BarChart data={jährlicheTransaktionenNachMonat}>
                         <XAxis dataKey="name" />
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="betrag" fill="#8884d8" />
+                        <Bar dataKey="einnahmen" fill="#4CAF50" />
+                        <Bar dataKey="ausgaben" fill="#F44336" />
+                        <Bar dataKey="bilanz" fill="#2196F3" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Jährliche Zusammenfassung</h3>
-                  <p>Gesamtausgaben dieses Jahr: {jährlicheAusgaben.toFixed(2)} €</p>
-                  <p>Durchschnittliche monatliche Ausgaben: {(jährlicheAusgaben / 12).toFixed(2)} €</p>
+                  <p>Gesamteinnahmen dieses Jahr: {jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.einnahmen, 0).toFixed(2)} €</p>
+                  <p>Gesamtausgaben dieses Jahr: {jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.ausgaben, 0).toFixed(2)} €</p>
+                  <p className="font-bold">Jahresbilanz: {jährlicheTransaktionenNachMonat.reduce((sum, month) => sum + month.bilanz, 0).toFixed(2)} €</p>
                 </div>
               </div>
             </CardContent>
