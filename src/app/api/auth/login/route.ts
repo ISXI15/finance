@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     const token = sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
 
-    const response = NextResponse.json({ user: { id: user.id, username: user.username, email: user.email }, token });
+    const response = NextResponse.json({ user: { id: user.id, username: user.username, email: user.email }, token, redirect: '/finanzplaner' });
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

@@ -6,24 +6,27 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export default function Login() {
+export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Implement your login logic here
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     })
 
+    const data = await response.json()
+
     if (response.ok) {
-      router.push('/finanzplaner')
+      // Redirect to the financial planner page
+      router.push(data.redirect || '/finanzplaner')
     } else {
       // Handle login error
+      console.error('Login failed:', data.error)
     }
   }
 
