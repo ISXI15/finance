@@ -303,15 +303,7 @@ export default function FinanzplanerPage() {
     authenticate()
   }, [router])
 
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
-
- const monatlicheTransaktionen = useMemo(() =>
+  const monatlicheTransaktionen = useMemo(() =>
     transaktionen.filter(t =>
       new Date(t.datum).getFullYear() === selectedYear &&
       new Date(t.datum).getMonth() === selectedMonth
