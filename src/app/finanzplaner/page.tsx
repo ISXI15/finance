@@ -270,11 +270,36 @@ const PieChartComponent: React.FC<{ data: { name: string; value: number }[] }> =
   </ResponsiveContainer>
 )
 
-export default function Component() {
+// Add this new function to check authentication
+const checkAuth = async () => {
+  const response = await fetch('/api/check-auth')
+  if (!response.ok) {
+    throw new Error('Not authenticated')
+  }
+}
+
+export default function FinanzplanerPage() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const router = useRouter()
   const { transaktionen, addTransaction, removeTransaction } = useTransactions()
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
-  const router = useRouter()
+
+  useEffect(() => {
+    const authenticate = async () => {
+      try {
+        await checkAuth()
+        setIsAuthenticated(true)
+      } catch (error) {
+        console.error('Authentication failed:', error)
+        router.push('/login')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    authenticate()
+  }, [router])
 
   const monatlicheTransaktionen = useMemo(() =>
     transaktionen.filter(t =>
@@ -303,6 +328,14 @@ export default function Component() {
       bilanz: einnahmen - ausgaben
     }
   })
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   return (
     <div className="container mx-auto p-4 bg-white text-black">
@@ -334,6 +367,7 @@ export default function Component() {
               <CardTitle className="flex justify-between items-center">
                 <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev - 1 + 12) % 12)}>
                   <ChevronLeft className="h-4 w-4" />
+
                 </Button>
                 Monat: {MONATE[selectedMonth]} {selectedYear}
                 <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev + 1) % 12)}>
@@ -348,7 +382,6 @@ export default function Component() {
                   <div className="h-64">
                     <PieChartComponent data={monatlichesDiagrammDaten} />
                   </div>
-
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
