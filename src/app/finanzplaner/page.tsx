@@ -332,11 +332,11 @@ export default function Component() {
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
-                <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev - 1 + 12) % 12)}>
+                <Button variant="outline" onClick={() => setSelectedMonth(prev => (prev - 1 + 12) % 12)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 Monat: {MONATE[selectedMonth]} {selectedYear}
-                <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev + 1) % 12)}>
+                <Button variant="outline" onClick={() => setSelectedMonth(prev => (prev + 1) % 12)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </CardTitle>
@@ -381,7 +381,7 @@ export default function Component() {
                         </span> ({transaktion.kategorie})
                         {new Date(transaktion.datum).toLocaleDateString('de-DE')}
                       </span>
-                      <Button variant="ghost" size="icon" onClick={() => removeTransaction(transaktion.id)}>
+                      <Button onClick={() => removeTransaction(transaktion.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </li>
@@ -396,11 +396,11 @@ export default function Component() {
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
-                <Button variant="outline" size="icon" onClick={() => setSelectedYear(prev => prev - 1)}>
+                <Button variant="outline" onClick={() => setSelectedYear(prev => prev - 1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 Jahr: {selectedYear}
-                <Button variant="outline" size="icon" onClick={() => setSelectedYear(prev => prev + 1)}>
+                <Button variant="outline" onClick={() => setSelectedYear(prev => prev + 1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </CardTitle>
