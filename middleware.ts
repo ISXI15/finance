@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const isAuthPage = request.nextUrl.pathname === '/login';
 
-  if (!token && (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/financial-planner'))) {
+  if (!token && request.nextUrl.pathname.startsWith('/finanzplaner')) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
     try {
       verifyToken(token);
       if (isAuthPage) {
-        return NextResponse.redirect(new URL('/finazplaner', request.url));
+        return NextResponse.redirect(new URL('/finanzplaner', request.url));
       }
     } catch (error) {
       return NextResponse.redirect(new URL('/login', request.url));
@@ -25,5 +25,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/finanzplaner/:path*', '/login'],
+  matcher: ['/finanzplaner', '/finanzplaner/:path*', '/login'],
 };
