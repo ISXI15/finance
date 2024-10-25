@@ -1,10 +1,10 @@
-﻿import { NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verify, JwtPayload } from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const cookieStore = cookies();
   const token = cookieStore.get('token');
 
