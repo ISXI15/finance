@@ -270,38 +270,11 @@ const PieChartComponent: React.FC<{ data: { name: string; value: number }[] }> =
   </ResponsiveContainer>
 )
 
-const checkAuth = async (): Promise<boolean> => {
-  try {
-    const response = await fetch('/api/check-auth', {
-      method: 'GET',
-      credentials: 'include', // This ensures cookies are sent with the request
-    })
-    return response.ok
-  } catch (error) {
-    console.error('Error checking authentication:', error)
-    return false
-  }
-}
-
-export default function FinanzplanerPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const router = useRouter()
+export default function Component() {
   const { transaktionen, addTransaction, removeTransaction } = useTransactions()
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
-
-  useEffect(() => {
-    const authenticate = async () => {
-      const authResult = await checkAuth()
-      setIsAuthenticated(authResult)
-      setIsLoading(false)
-      if (!authResult) {
-        router.push('/login')
-      }
-    }
-    authenticate()
-  }, [router])
+  const router = useRouter()
 
   const monatlicheTransaktionen = useMemo(() =>
     transaktionen.filter(t =>
@@ -330,14 +303,6 @@ export default function FinanzplanerPage() {
       bilanz: einnahmen - ausgaben
     }
   })
-
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
 
   return (
     <div className="container mx-auto p-4 bg-white text-black">
@@ -369,7 +334,6 @@ export default function FinanzplanerPage() {
               <CardTitle className="flex justify-between items-center">
                 <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev - 1 + 12) % 12)}>
                   <ChevronLeft className="h-4 w-4" />
-
                 </Button>
                 Monat: {MONATE[selectedMonth]} {selectedYear}
                 <Button variant="outline" size="icon" onClick={() => setSelectedMonth(prev => (prev + 1) % 12)}>
@@ -384,6 +348,7 @@ export default function FinanzplanerPage() {
                   <div className="h-64">
                     <PieChartComponent data={monatlichesDiagrammDaten} />
                   </div>
+
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Monatliche Übersicht</h3>
