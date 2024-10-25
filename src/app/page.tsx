@@ -35,7 +35,7 @@ export default function Home() {
           </Link>
         </div>
         <p className="mt-8 text-black text-center text-sm md:text-lg px-4">
-        Verwalten Sie Ihre Finanzen einfach und effektiv mit unserem Finanzplaner um ein besseres sparen zu ermöglichen.
+          Verwalten Sie Ihre Finanzen einfach und effektiv mit unserem Finanzplaner um ein besseres sparen zu ermöglichen.
         </p>
       </div>
     </div>
