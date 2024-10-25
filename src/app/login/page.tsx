@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     if (response.ok) {
       // Redirect to the financial planner page
-      router.push(data.redirect || '/finanzplaner')
+      router.push('/finanzplaner')
     } else {
       // Handle login error
       console.error('Login failed:', data.error)

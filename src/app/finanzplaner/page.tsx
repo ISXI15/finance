@@ -270,11 +270,16 @@ const PieChartComponent: React.FC<{ data: { name: string; value: number }[] }> =
   </ResponsiveContainer>
 )
 
-// Add this new function to check authentication
-const checkAuth = async () => {
-  const response = await fetch('/api/check-auth')
-  if (!response.ok) {
-    throw new Error('Not authenticated')
+const checkAuth = async (): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/check-auth', {
+      method: 'GET',
+      credentials: 'include', // This ensures cookies are sent with the request
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Error checking authentication:', error)
+    return false
   }
 }
 
@@ -288,18 +293,23 @@ export default function FinanzplanerPage() {
 
   useEffect(() => {
     const authenticate = async () => {
-      try {
-        await checkAuth()
-        setIsAuthenticated(true)
-      } catch (error) {
-        console.error('Authentication failed:', error)
+      const authResult = await checkAuth()
+      setIsAuthenticated(authResult)
+      setIsLoading(false)
+      if (!authResult) {
         router.push('/login')
-      } finally {
-        setIsLoading(false)
       }
     }
     authenticate()
   }, [router])
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (!isAuthenticated) {
+    return null // This will prevent the component from rendering while redirecting
+  }
 
   const monatlicheTransaktionen = useMemo(() =>
     transaktionen.filter(t =>
