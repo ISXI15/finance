@@ -5,7 +5,6 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-// Definiere die query-Funktion
 const db = {
   query: (text: string, params?: unknown[]) => pool.query(text, params),
 };
