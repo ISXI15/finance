@@ -10,13 +10,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const router = useRouter()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically handle authentication
-    // For this example, we'll just redirect to the finance planner
-    router.push('/finanzplaner')
+    setError('')
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      if (response.ok) {
+        router.push('/finanzplaner')
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Anmeldung fehlgeschlagen')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError('Ein unerwarteter Fehler ist aufgetreten')
+    }
   }
 
   return (
@@ -47,6 +62,7 @@ export default function LoginPage() {
                 required
               />
             </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
             <Button type="submit" className="w-full">Anmelden</Button>
           </form>
         </CardContent>
