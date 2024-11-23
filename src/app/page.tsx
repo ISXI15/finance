@@ -38,6 +38,11 @@ export default function Home() {
           Verwalten Sie Ihre Finanzen einfach und effektiv mit unserem Finanzplaner um ein besseres sparen zu ermöglichen.
         </p>
       </div>
+      <footer className="z-10 w-full text-center py-4">
+        <Link href="/impressum" className="text-black hover:underline">
+          Impressum
+        </Link>
+      </footer>
     </div>
   )
 }
