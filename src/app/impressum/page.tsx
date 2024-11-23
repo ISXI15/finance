@@ -6,14 +6,14 @@
           <div className="space-y-4">
             <p><strong>Angaben gemäß § 5 TMG:</strong></p>
             <p>
-              Vorname Nachname<br />
-              Straße Nr.<br />
-              PLZ Ort
+              Ilse Weingaertner <br />
+              Winzererstraße 61<br />
+              80797 München
             </p>
             <p><strong>Kontakt:</strong></p>
             <p>
               Telefon: +49 (0) 123 456789<br />
-              E-Mail: ihre@email.de
+              E-Mail: ilse.weingaertner@gmail.com
             </p>
             <p><strong>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV:</strong></p>
             <p>
