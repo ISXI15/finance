@@ -39,9 +39,14 @@ export default function Home() {
         </p>
       </div>
       <footer className="z-10 w-full text-center py-4">
-        <Link href="/impressum" className="text-black hover:underline">
-          Impressum
-        </Link>
+        <nav className="space-x-4">
+          <Link href="/impressum" className="text-black hover:underline">
+            Impressum
+          </Link>
+          <Link href="/datenschutz" className="text-black hover:underline">
+            Datenschutzerklärung
+          </Link>
+        </nav>
       </footer>
     </div>
   )
