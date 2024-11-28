@@ -10,10 +10,9 @@
                 Verantwortlich für die Verarbeitung Ihrer personenbezogenen Daten im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
               </p>
               <p className="mt-2">
-                [Dein Name / Name des Unternehmens]<br />
-                [Deine Adresse]<br />
-                [Deine E-Mail-Adresse]<br />
-                (Optional: Telefonnummer)
+                [Weingaertner Ilse]<br />
+                [Winzererstraße 80]<br />
+                [ilse.weingaertner@gmail.com]<br />
               </p>
             </section>
 

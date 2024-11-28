@@ -18,7 +18,7 @@
             <p><strong>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV:</strong></p>
             <p>
               Ilse Weingaertner <br />
-              Winzererstraße 61 <br />
+              Winzererstraße 80 <br />
               80797 München
             </p>
             {/* Fügen Sie hier weitere erforderliche Informationen hinzu */}
