@@ -10,9 +10,9 @@
                 Verantwortlich für die Verarbeitung Ihrer personenbezogenen Daten im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
               </p>
               <p className="mt-2">
-                [Weingaertner Ilse]<br />
-                [Winzererstraße 80]<br />
-                [ilse.weingaertner@gmail.com]<br />
+                Weingaertner Ilse<br />
+                Winzererstraße 80<br />
+                ilse.weingaertner@gmail.com<br />
               </p>
             </section>
 
