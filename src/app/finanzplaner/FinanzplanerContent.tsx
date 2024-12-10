@@ -11,7 +11,7 @@ export default function FinanzplanerContent() {
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include', // This ensures cookies are sent with the request
+        credentials: 'include',
       })
 
       if (response.ok) {
