@@ -1,23 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import BitcoinStatus from '../components/BitcoinStatus'
 
 export default function Home() {
-  const router = useRouter()
-
-  useEffect(() => {
-    // Check if the token exists in cookies
-    const token = document.cookie.includes('token=')
-    if (token) {
-      // If token exists, redirect to finanzplaner
-      router.push('/finanzplaner')
-    }
-  }, [router])
-
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-center bg-gray-100 p-4">
       <Image
