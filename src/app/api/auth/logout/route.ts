@@ -2,24 +2,25 @@
 import type { NextRequest } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  try {
-    const { deleteCookie } = await request.json()
+  const response = NextResponse.json({ success: true })
 
-    const response = NextResponse.json({ success: true })
+  // Delete the token cookie
+  response.cookies.set('token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    expires: new Date(0),
+    path: '/',
+  })
 
-    if (deleteCookie) {
-      response.cookies.set('token', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        expires: new Date(0), // This will immediately expire the cookie
-        path: '/', // Ensure the cookie is deleted for all paths
-      })
-    }
+  // Also clear any other session-related cookies if they exist
+  response.cookies.set('session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    expires: new Date(0),
+    path: '/',
+  })
 
-    return response
-  } catch (error) {
-    console.error('Logout error:', error)
-    return NextResponse.json({ error: 'Logout failed' }, { status: 500 })
-  }
+  return response
 }
