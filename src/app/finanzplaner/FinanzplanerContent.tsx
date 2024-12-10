@@ -11,10 +11,11 @@ export default function FinanzplanerContent() {
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include',
+        credentials: 'include', // This ensures cookies are sent with the request
       })
 
       if (response.ok) {
+        // Force a hard reload to clear any client-side state
         window.location.href = '/login'
       } else {
         console.error('Logout failed')
