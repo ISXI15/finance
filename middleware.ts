@@ -2,21 +2,19 @@
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('token')?.value
-  const isAuthPage = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register'
-  const isFinanzplanerPage = request.nextUrl.pathname === '/finanzplaner' || request.nextUrl.pathname.startsWith('/finanzplaner/')
+  const path = request.nextUrl.pathname
 
-  if (isFinanzplanerPage && !token) {
+  // Allow access to the homepage, login, and register pages
+  if (path === '/' || path === '/login' || path === '/register') {
+    return NextResponse.next()
+  }
+
+  // Redirect all other paths to the login page
+  if (!path.includes('/_next') && !path.includes('/api')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
-
-  if (isAuthPage && token) {
-    return NextResponse.redirect(new URL('/finanzplaner', request.url))
-  }
-
-  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/finanzplaner/:path*', '/login', '/register'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }
