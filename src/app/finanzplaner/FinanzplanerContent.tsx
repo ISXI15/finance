@@ -15,7 +15,6 @@ export default function FinanzplanerContent() {
       })
 
       if (response.ok) {
-        // Force a hard reload to clear any client-side state
         window.location.href = '/login'
       } else {
         console.error('Logout failed')
